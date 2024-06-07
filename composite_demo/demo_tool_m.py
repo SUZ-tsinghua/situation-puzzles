@@ -36,6 +36,8 @@ def main(top_p: float, temperature: float, prompt_text: str):
         message_placeholder = placeholder.chat_message(name="assistant", avatar="assistant")
         markdown_placeholder = message_placeholder.empty()
 
+        # 调用 OpenAI API
+        # TODO: 加个 tool
         with markdown_placeholder:
             with st.spinner(f'Generating Text ...'):
                 response = client.chat.completions.create(
@@ -57,6 +59,23 @@ def main(top_p: float, temperature: float, prompt_text: str):
                                 Role.ASSISTANT,
                                 response_message.content,
                             ), st.session_state.tool_history, markdown_placeholder)
+        
+        # TODO: 展示图片示例，后面需要删掉
+        placeholder = st.container()
+        message_placeholder = placeholder.chat_message(name="assistant", avatar="assistant")
+        markdown_placeholder = message_placeholder.empty()
+
+        with markdown_placeholder:
+            with st.spinner(f'Generating Image ...'):
+                response = client.images.generate(
+                            model="dall-e-2",
+                            prompt="a white siamese cat",
+                            size="256x256",
+                            quality="standard",
+                            n=1,
+                            )
+            image_url = response.data[0].url
+            st.image(image_url, use_column_width=True)
     
         initialized = True
     
@@ -64,6 +83,8 @@ def main(top_p: float, temperature: float, prompt_text: str):
         history: list[Conversation] = st.session_state.tool_history
         messages: list[dict] = st.session_state.messages
 
+        # show 之前所有的对话内容
+        # TODO: 需要把生成的图片也加入到 history 中，否则无法正常展示图片
         for conversation in history:
             conversation.show()
 
@@ -78,6 +99,7 @@ def main(top_p: float, temperature: float, prompt_text: str):
             messages.append({"role": "user", "content": prompt_text})
 
             print(messages)
+            # TODO: 这里也需要加 tool
             with markdown_placeholder:
                 with st.spinner(f'Generating Text ...'):
                     response = client.chat.completions.create(
