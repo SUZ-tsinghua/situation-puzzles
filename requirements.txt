@@ -23,9 +23,10 @@ uvicorn>=0.29.0
 timm>=0.9.16
 tiktoken>=0.6.0
 
-# for langchain demo
-
-langchain>=0.2.1
-langchain_community>=0.2.0
-langchainhub>=0.1.15
-arxiv>=2.1.0
+huggingface_hub>=0.19.4
+pillow>=10.1.0
+pyyaml>=6.0.1
+requests>=2.31.0
+ipykernel>=6.26.0
+ipython>=8.18.1
+jupyter_client>=8.6.0
