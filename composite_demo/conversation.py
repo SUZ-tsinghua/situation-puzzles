@@ -1,8 +1,11 @@
 from dataclasses import dataclass
 from enum import auto, Enum
+from io import BytesIO
 import json
-
+import PIL
 from PIL.Image import Image
+import PIL.Image
+import requests
 import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
 
@@ -47,13 +50,14 @@ class Role(Enum):
                 return st.chat_message(name="observation", avatar="user")
             case _:
                 st.error(f'Unexpected role: {self}')
-
+#增加了一个参数image_url
 @dataclass
 class Conversation:
     role: Role
     content: str
     tool: str | None = None
     image: Image | None = None
+    image_url: str | None = None
 
     def __str__(self) -> str:
         print(self.role, self.content, self.tool)
@@ -83,6 +87,9 @@ class Conversation:
             message = placeholder
         else:
             message = self.role.get_message()
+        #增加了url表示
+        if self.image_url:
+            pass
         if self.image:
             message.image(self.image)
         else:

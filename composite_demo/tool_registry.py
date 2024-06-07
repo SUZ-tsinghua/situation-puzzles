@@ -70,6 +70,16 @@ def get_tools() -> dict:
 
 # Tool Definitions
 
+def get_image_from_dalle(client, prompt):
+    response = client.images.generate(
+                            model="dall-e-2",
+                            prompt=prompt,
+                            size="256x256",
+                            quality="standard",
+                            n=1,
+                            )
+    return response
+
 @register_tool
 def random_number_generator(
         seed: Annotated[int, 'The random seed used by the generator', True],
