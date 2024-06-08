@@ -43,7 +43,7 @@ tools = [
 ]
 
 # 读入 system prompt
-with open('./prompt.txt', 'r', encoding='utf-8') as file:
+with open('./ai_host_prompt.txt', 'r', encoding='utf-8') as file:
     system_prompt = file.read()
 
 # Append a conversation into history, while show it in a new markdown block
