@@ -88,24 +88,10 @@ def main(top_p: float, temperature: float, prompt_text: str):
         print(response_message)
         tool_calls = response_message.tool_calls
         content = response_message.content
-        if content:
-            st.session_state.messages.append(
-                {
-                    "role": "assistant",
-                    "content": response_message.content,
-                }
-            )
-            append_conversation(Conversation(
-                                    Role.ASSISTANT,
-                                    response_message.content,
-                                ), st.session_state.tool_history, markdown_placeholder)
+
         if tool_calls:
             print("received a tool call request", tool_calls)
-            # 如果有文字内容的话，需要新建一个对话框
-            if content:
-                placeholder = st.container()
-                message_placeholder = placeholder.chat_message(name="assistant", avatar="assistant")
-                markdown_placeholder = message_placeholder.empty()
+            
 
             with markdown_placeholder:
                 # with st.spinner(f'Calling tools ...'):
@@ -145,6 +131,23 @@ def main(top_p: float, temperature: float, prompt_text: str):
                                                 tool = "function_name",
                                                 image=img
                                             ), st.session_state.tool_history, markdown_placeholder)
+        if content:
+            # 如果有图片内容的话，需要新建一个对话框
+            if tool_calls:
+                placeholder = st.container()
+                message_placeholder = placeholder.chat_message(name="assistant", avatar="assistant")
+                markdown_placeholder = message_placeholder.empty()
+
+            st.session_state.messages.append(
+                {
+                    "role": "assistant",
+                    "content": response_message.content,
+                }
+            )
+            append_conversation(Conversation(
+                                    Role.ASSISTANT,
+                                    response_message.content,
+                                ), st.session_state.tool_history, markdown_placeholder)
 
         # # TODO: 展示图片示例，后面需要删掉
         # placeholder = st.container()
@@ -170,7 +173,6 @@ def main(top_p: float, temperature: float, prompt_text: str):
         messages: list[dict] = st.session_state.messages
 
         # show 之前所有的对话内容
-        # TODO: 需要把生成的图片也加入到 history 中，否则无法正常展示图片
         for conversation in history:
             conversation.show()
 
@@ -185,7 +187,6 @@ def main(top_p: float, temperature: float, prompt_text: str):
             messages.append({"role": "user", "content": prompt_text})
 
             print(messages)
-            # TODO: 这里也需要加 tool
             with markdown_placeholder:
                 with st.spinner(f'Generating Text ...'):
                     response = client.chat.completions.create(
@@ -202,27 +203,9 @@ def main(top_p: float, temperature: float, prompt_text: str):
             print(response_message)
             tool_calls = response_message.tool_calls
             content = response_message.content
-            if content:
-                st.session_state.messages.append(
-                    {
-                        "role": "assistant",
-                        "content": response_message.content,
-                    }
-                )
-                append_conversation(Conversation(
-                                        Role.ASSISTANT,
-                                        response_message.content,
-                                    ), st.session_state.tool_history, markdown_placeholder)
+
             if tool_calls:
                 print("received a tool call request", tool_calls)
-                # 如果有文字内容的话，需要新建一个对话框
-                if content:
-                    placeholder = st.container()
-                    message_placeholder = placeholder.chat_message(name="assistant", avatar="assistant")
-                    markdown_placeholder = message_placeholder.empty()
-                # placeholder = st.container()
-                # message_placeholder = placeholder.chat_message(name="assistant", avatar="assistant")
-                # markdown_placeholder = message_placeholder.empty() 
 
                 with markdown_placeholder:
                     # with st.spinner(f'Calling tools ...'):
@@ -263,4 +246,20 @@ def main(top_p: float, temperature: float, prompt_text: str):
                                                     image=img
                                                 ), st.session_state.tool_history, markdown_placeholder)
 
-            
+            if content:
+                # 如果有图片内容的话，需要新建一个对话框
+                if tool_calls:
+                    placeholder = st.container()
+                    message_placeholder = placeholder.chat_message(name="assistant", avatar="assistant")
+                    markdown_placeholder = message_placeholder.empty()
+
+                st.session_state.messages.append(
+                    {
+                        "role": "assistant",
+                        "content": response_message.content,
+                    }
+                )
+                append_conversation(Conversation(
+                                        Role.ASSISTANT,
+                                        response_message.content,
+                                    ), st.session_state.tool_history, markdown_placeholder)
