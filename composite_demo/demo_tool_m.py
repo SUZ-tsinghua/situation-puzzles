@@ -19,7 +19,7 @@ tools = [
             "type": "function",
             "function": {
                 "name": "get_image_from_dalle",
-                "description": "生成一张图片，以揭示谜底，展示最核心的情节画面",
+                "description": "在以下情况下，你可以调用这个工具来生成一张图片：1. 游戏的最开始，你需要一张图片来向用户展示汤面。2.当用户索要图片提示时，你需要生成一张能够提供足够提示的图片。3.谜底揭晓时，你需要提供一张能以足够准确度展示谜底的图片。",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -87,29 +87,50 @@ def main(top_p: float, temperature: float, prompt_text: str):
         messages.append(response_message)
         print(response_message)
         tool_calls = response_message.tool_calls
-
+        content = response_message.content
+        if content:
+            st.session_state.messages.append(
+                {
+                    "role": "assistant",
+                    "content": response_message.content,
+                }
+            )
+            append_conversation(Conversation(
+                                    Role.ASSISTANT,
+                                    response_message.content,
+                                ), st.session_state.tool_history, markdown_placeholder)
         if tool_calls:
             print("received a tool call request", tool_calls)
+            # 如果有文字内容的话，需要新建一个对话框
+            if content:
+                placeholder = st.container()
+                message_placeholder = placeholder.chat_message(name="assistant", avatar="assistant")
+                markdown_placeholder = message_placeholder.empty()
 
             with markdown_placeholder:
-                with st.spinner(f'Calling tools ...'):
-                    available_functions = {
-                            "get_image_from_dalle": get_image_from_dalle
-                        }
-                    print (f"toolcall is {tool_calls}")
-                    for tool_call in tool_calls:
-                        function_name = tool_call.function.name
-                        function_to_call = available_functions[function_name]
-                        function_args = json.loads(tool_call.function.arguments)
-                        if function_name == "get_image_from_dalle":
+                # with st.spinner(f'Calling tools ...'):
+                available_functions = {
+                        "get_image_from_dalle": get_image_from_dalle
+                    }
+                print (f"toolcall is {tool_calls}")
+                for tool_call in tool_calls:
+                    function_name = tool_call.function.name
+                    function_to_call = available_functions[function_name]
+                    function_args = json.loads(tool_call.function.arguments)
+                    if function_name == "get_image_from_dalle":
+                        with st.spinner(f'Generating Image ...'):
                             style = function_args.get("style", "")
                             hue = function_args.get("hue", "")
                             image_content = function_args.get("image_content", "")
                             prompt = "图片风格是:" + style + "图片色调是:" + hue + "图像内容是:" + image_content
                             function_response = function_to_call(client, prompt)
                             image_url = function_response.data[0].url
-                            st.image(image_url, use_column_width=True)
-                       
+                        st.image(image_url, use_column_width=True)
+
+                        print("display!!!")
+                        response = requests.get(image_url)
+                        img = PIL.Image.open(BytesIO(response.content))
+                    
                         messages.append(
                                 {
                                     "tool_call_id": tool_call.id,
@@ -124,19 +145,6 @@ def main(top_p: float, temperature: float, prompt_text: str):
                                                 tool = "function_name",
                                                 image=img
                                             ), st.session_state.tool_history, markdown_placeholder)
-        else:
-            st.session_state.messages.append(
-                {
-                    "role": "assistant",
-                    "content": response_message.content,
-                }
-            )
-            append_conversation(Conversation(
-                                    Role.ASSISTANT,
-                                    response_message.content,
-                                ), st.session_state.tool_history, markdown_placeholder)
-
-
 
         # # TODO: 展示图片示例，后面需要删掉
         # placeholder = st.container()
@@ -193,23 +201,41 @@ def main(top_p: float, temperature: float, prompt_text: str):
             messages.append(response_message)
             print(response_message)
             tool_calls = response_message.tool_calls
+            content = response_message.content
+            if content:
+                st.session_state.messages.append(
+                    {
+                        "role": "assistant",
+                        "content": response_message.content,
+                    }
+                )
+                append_conversation(Conversation(
+                                        Role.ASSISTANT,
+                                        response_message.content,
+                                    ), st.session_state.tool_history, markdown_placeholder)
             if tool_calls:
                 print("received a tool call request", tool_calls)
+                # 如果有文字内容的话，需要新建一个对话框
+                if content:
+                    placeholder = st.container()
+                    message_placeholder = placeholder.chat_message(name="assistant", avatar="assistant")
+                    markdown_placeholder = message_placeholder.empty()
                 # placeholder = st.container()
                 # message_placeholder = placeholder.chat_message(name="assistant", avatar="assistant")
                 # markdown_placeholder = message_placeholder.empty() 
 
                 with markdown_placeholder:
-                    with st.spinner(f'Calling tools ...'):
-                        available_functions = {
-                                "get_image_from_dalle": get_image_from_dalle
-                            }
-                        print (f"toolcall is {tool_calls}")
-                        for tool_call in tool_calls:
-                            function_name = tool_call.function.name
-                            function_to_call = available_functions[function_name]
-                            function_args = json.loads(tool_call.function.arguments)
-                            if function_name == "get_image_from_dalle":
+                    # with st.spinner(f'Calling tools ...'):
+                    available_functions = {
+                            "get_image_from_dalle": get_image_from_dalle
+                        }
+                    print (f"toolcall is {tool_calls}")
+                    for tool_call in tool_calls:
+                        function_name = tool_call.function.name
+                        function_to_call = available_functions[function_name]
+                        function_args = json.loads(tool_call.function.arguments)
+                        if function_name == "get_image_from_dalle":
+                            with st.spinner(f'Generating Image ...'):
                                 style = function_args.get("style", "")
                                 hue = function_args.get("hue", "")
                                 image_content = function_args.get("image_content", "")
@@ -219,7 +245,6 @@ def main(top_p: float, temperature: float, prompt_text: str):
                                 print("image_url:", image_url)
                             st.image(image_url, use_column_width=True)
 
-                            #
                             print("display!!!")
                             response = requests.get(image_url)
                             img = PIL.Image.open(BytesIO(response.content))
@@ -237,16 +262,5 @@ def main(top_p: float, temperature: float, prompt_text: str):
                                                     tool = function_name,
                                                     image=img
                                                 ), st.session_state.tool_history, markdown_placeholder)
-            else:
-                messages.append(
-                                    {
-                                        "role": "assistant",
-                                        "content": response_message.content,
-                                    }
-                                )
-                append_conversation(Conversation(
-                                        Role.ASSISTANT,
-                                        response_message.content
-                                    ), history, markdown_placeholder)
 
             
