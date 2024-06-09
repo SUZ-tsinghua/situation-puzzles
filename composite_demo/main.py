@@ -6,7 +6,7 @@ st.set_page_config(
     initial_sidebar_state='expanded',
 )
 
-import demo_tool_m, demo_tool_ai
+import demo_ai_as_host, demo_ai_vs_ai
 from enum import Enum
 
 # Set the title of the demo
@@ -38,7 +38,7 @@ match tab:
             key='chat_input',
         )
 
-        demo_tool_m.main(
+        demo_ai_as_host.main(
                     prompt_text=prompt_text,
                     top_p=top_p,
                     temperature=temperature,
@@ -48,7 +48,7 @@ match tab:
             cols = st.columns(1)
             generate_bttn = cols[0].button("生成一轮（仅限AI vs AI）", use_container_width=True)
         if generate_bttn:
-            demo_tool_ai.main(
+            demo_ai_vs_ai.main(
                     prompt_text="1",
                     top_p=top_p,
                     temperature=temperature,

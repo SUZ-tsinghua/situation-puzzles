@@ -14,37 +14,11 @@ client = OpenAI(api_key='sk-proj-VUixgiopd34tsCI6w0UfT3BlbkFJZA2JN6Fn9ehr5wpw3bT
 
 initialized = False
 
-tools = [
-    {
-            "type": "function",
-            "function": {
-                "name": "get_image_from_dalle",
-                "description": "在以下情况下，你可以调用这个工具来生成一张图片：1. 游戏的最开始，你需要一张图片来向用户展示汤面。2.当用户索要图片提示时，你需要生成一张能够提供足够提示的图片。3.谜底揭晓时，你需要提供一张能以足够准确度展示谜底的图片。",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "style": {
-                            "type": "string",
-                            "description": "图片整体风格",
-                        },
-                        "hue": {
-                            "type": "string",
-                            "description": "图片整体色调",
-                        },
-                        "image_content": {
-                            "type": "string",
-                            "description": "图片描述，要足够细致",
-                        },
-                    },
-                    "required": ["style", "hue", "image_content"],
-                },
-            },
-        }
-]
-
 # 读入 system prompt
-with open('./prompt.txt', 'r', encoding='utf-8') as file:
+with open('./ai_host_prompt.txt', 'r', encoding='utf-8') as file:
     system_prompt = file.read()
+with open('./ai_player_prompt.txt', 'r', encoding='utf-8') as file:
+    system_prompt_player = file.read()
 
 # Append a conversation into history, while show it in a new markdown block
 def append_conversation(
@@ -60,6 +34,11 @@ def main(top_p: float, temperature: float, prompt_text: str):
     # initialize
     global initialized
     if not initialized:
+        st.session_state.player_history = []
+        st.session_state.player_messages = [{"role": "system", "content": system_prompt_player}]
+        player_history: list[Conversation] = st.session_state.player_history
+        player_messages: list[dict] = st.session_state.player_messages
+        
         st.session_state.tool_history = []
         st.session_state.messages = [{"role": "system", "content": system_prompt}]
         history: list[Conversation] = st.session_state.tool_history
@@ -77,14 +56,13 @@ def main(top_p: float, temperature: float, prompt_text: str):
                 response = client.chat.completions.create(
                     model="gpt-4o",
                     messages=messages,
-                    tools=[tools[0]],
-                    tool_choice="auto",
                     temperature=temperature,
                     top_p=top_p
                 )
 
         response_message = response.choices[0].message
         messages.append(response_message)
+        player_messages.append(response_message)
         print(response_message)
         tool_calls = response_message.tool_calls
         content = response_message.content
@@ -125,12 +103,27 @@ def main(top_p: float, temperature: float, prompt_text: str):
                                     "content": "this is a picture tool",
                                 }
                             )  
+                        player_messages.append(
+                                {
+                                    "tool_call_id": tool_call.id,
+                                    "role": "tool",
+                                    "name": function_name,
+                                    "content": "this is a picture tool",
+                                }
+                            )  
+                        
                         append_conversation(Conversation(
                                                 Role.TOOL,
                                                 "this is a picture tool",
                                                 tool = "function_name",
                                                 image=img
                                             ), st.session_state.tool_history, markdown_placeholder)
+                        append_conversation(Conversation(
+                                                Role.TOOL,
+                                                "this is a picture tool",
+                                                tool = "function_name",
+                                                image=img
+                                            ), st.session_state.player_history, markdown_placeholder)
         if content:
             # 如果有图片内容的话，需要新建一个对话框
             if tool_calls:
@@ -144,10 +137,21 @@ def main(top_p: float, temperature: float, prompt_text: str):
                     "content": response_message.content,
                 }
             )
+            st.session_state.player_messages.append(
+                {
+                    "role": "assistant",
+                    "content": response_message.content,
+                }
+            )
+            
             append_conversation(Conversation(
                                     Role.ASSISTANT,
                                     response_message.content,
                                 ), st.session_state.tool_history, markdown_placeholder)
+            append_conversation(Conversation(
+                                    Role.ASSISTANT,
+                                    response_message.content,
+                                ), st.session_state.player_history, markdown_placeholder)
 
         # # TODO: 展示图片示例，后面需要删掉
         # placeholder = st.container()
@@ -169,22 +173,48 @@ def main(top_p: float, temperature: float, prompt_text: str):
         initialized = True
         
     else:
+        player_history: list[Conversation] = st.session_state.player_history
+        player_messages: list[dict] = st.session_state.player_messages
+
         history: list[Conversation] = st.session_state.tool_history
         messages: list[dict] = st.session_state.messages
 
         # show 之前所有的对话内容
         for conversation in history:
             conversation.show()
+            
+        # 创建一个对话框
+        placeholder = st.container()
+        message_placeholder = placeholder.chat_message(name="user", avatar="user")
+        markdown_placeholder = message_placeholder.empty()
 
-        if prompt_text:
-            prompt_text = prompt_text.strip()
-            append_conversation(Conversation(Role.USER, prompt_text), history)
+        # 调用 OpenAI API
+        # TODO: 加个 tool
+        with markdown_placeholder:
+            with st.spinner(f'Generating Text ...'):
+                response = client.chat.completions.create(
+                    model="gpt-4o",
+                    messages=player_messages,
+                    temperature=temperature,
+                    top_p=top_p
+                )
+
+        response_message = response.choices[0].message
+        messages.append(response_message)
+        player_messages.append(response_message)
+        print(response_message)
+
+        if response_message:
+            response_message = response_message.strip()
+            append_conversation(Conversation(Role.USER, response_message), player_history)
+            append_conversation(Conversation(Role.USER, response_message), history)
             
             placeholder = st.container()
             message_placeholder = placeholder.chat_message(name="assistant", avatar="assistant")
             markdown_placeholder = message_placeholder.empty()
 
-            messages.append({"role": "user", "content": prompt_text})
+            player_messages.append({"role": "user", "content": response_message})
+            messages.append({"role": "user", "content": response_message})
 
             print(messages)
             with markdown_placeholder:
@@ -192,14 +222,13 @@ def main(top_p: float, temperature: float, prompt_text: str):
                     response = client.chat.completions.create(
                         model="gpt-4o",
                         messages=messages,
-                        tools=[tools[0]],
-                        tool_choice="auto",
                         temperature=temperature,
                         top_p=top_p
                     )
 
             response_message = response.choices[0].message
             messages.append(response_message)
+            player_messages.append(response_message)
             print(response_message)
             tool_calls = response_message.tool_calls
             content = response_message.content
@@ -239,12 +268,26 @@ def main(top_p: float, temperature: float, prompt_text: str):
                                         "content": "this is a picture tool",
                                     }
                                 )  
+                            player_messages.append(
+                                    {
+                                        "tool_call_id": tool_call.id,
+                                        "role": "tool",
+                                        "name": function_name,
+                                        "content": "this is a picture tool",
+                                    }
+                                )  
                             append_conversation(Conversation(
                                                     Role.TOOL,
                                                     "this is a picture tool",
                                                     tool = function_name,
                                                     image=img
                                                 ), st.session_state.tool_history, markdown_placeholder)
+                            append_conversation(Conversation(
+                                                    Role.TOOL,
+                                                    "this is a picture tool",
+                                                    tool = function_name,
+                                                    image=img
+                                                ), st.session_state.player_history, markdown_placeholder)
 
             if content:
                 # 如果有图片内容的话，需要新建一个对话框
@@ -259,7 +302,17 @@ def main(top_p: float, temperature: float, prompt_text: str):
                         "content": response_message.content,
                     }
                 )
+                st.session_state.player_messages.append(
+                    {
+                        "role": "assistant",
+                        "content": response_message.content,
+                    }
+                )
                 append_conversation(Conversation(
                                         Role.ASSISTANT,
                                         response_message.content,
                                     ), st.session_state.tool_history, markdown_placeholder)
+                append_conversation(Conversation(
+                                        Role.ASSISTANT,
+                                        response_message.content,
+                                    ), st.session_state.player_history, markdown_placeholder)
