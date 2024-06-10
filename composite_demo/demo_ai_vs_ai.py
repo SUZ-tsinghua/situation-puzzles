@@ -25,9 +25,11 @@ def append_conversation(
     conversation: Conversation,
     history: list[Conversation],
     placeholder: DeltaGenerator | None=None,
+    show: bool = True,
 ) -> None:
     history.append(conversation)
-    conversation.show(placeholder)
+    if show:
+        conversation.show(placeholder)
 
 def main(top_p: float, temperature: float, prompt_text: str):
 
@@ -123,7 +125,7 @@ def main(top_p: float, temperature: float, prompt_text: str):
                                                 "this is a picture tool",
                                                 tool = "function_name",
                                                 image=img
-                                            ), st.session_state.player_history, markdown_placeholder)
+                                            ), st.session_state.player_history, markdown_placeholder, show=False)
         if content:
             # 如果有图片内容的话，需要新建一个对话框
             if tool_calls:
@@ -151,7 +153,7 @@ def main(top_p: float, temperature: float, prompt_text: str):
             append_conversation(Conversation(
                                     Role.ASSISTANT,
                                     response_message.content,
-                                ), st.session_state.player_history, markdown_placeholder)
+                                ), st.session_state.player_history, markdown_placeholder, show=False)
 
         # # TODO: 展示图片示例，后面需要删掉
         # placeholder = st.container()
@@ -176,11 +178,11 @@ def main(top_p: float, temperature: float, prompt_text: str):
         player_history: list[Conversation] = st.session_state.player_history
         player_messages: list[dict] = st.session_state.player_messages
 
-        history: list[Conversation] = st.session_state.tool_history
+        tool_history: list[Conversation] = st.session_state.tool_history
         messages: list[dict] = st.session_state.messages
 
         # show 之前所有的对话内容
-        for conversation in history:
+        for conversation in tool_history:
             conversation.show()
             
         # 创建一个对话框
@@ -204,10 +206,10 @@ def main(top_p: float, temperature: float, prompt_text: str):
         player_messages.append(response_message)
         print(response_message)
 
-        if response_message:
-            response_message = response_message.strip()
-            append_conversation(Conversation(Role.USER, response_message), player_history)
-            append_conversation(Conversation(Role.USER, response_message), history)
+        if response_message.content:
+            response_message = response_message.content.strip()
+            append_conversation(Conversation(Role.USER, response_message), player_history, show=False)
+            append_conversation(Conversation(Role.USER, response_message), tool_history, markdown_placeholder)
             
             placeholder = st.container()
             message_placeholder = placeholder.chat_message(name="assistant", avatar="assistant")
@@ -287,7 +289,7 @@ def main(top_p: float, temperature: float, prompt_text: str):
                                                     "this is a picture tool",
                                                     tool = function_name,
                                                     image=img
-                                                ), st.session_state.player_history, markdown_placeholder)
+                                                ), st.session_state.player_history, markdown_placeholder, show=False)
 
             if content:
                 # 如果有图片内容的话，需要新建一个对话框
@@ -315,4 +317,4 @@ def main(top_p: float, temperature: float, prompt_text: str):
                 append_conversation(Conversation(
                                         Role.ASSISTANT,
                                         response_message.content,
-                                    ), st.session_state.player_history, markdown_placeholder)
+                                    ), st.session_state.player_history, markdown_placeholder, show=False)
