@@ -175,6 +175,24 @@ def main(top_p: float, temperature: float, prompt_text: str):
         initialized = True
         
     else:
+        if 'player_history' not in st.session_state:
+            initialized = False
+            main(
+                    prompt_text="1",
+                    top_p=top_p,
+                    temperature=temperature,
+                )
+            return
+            # st.session_state.player_history = []
+            # st.session_state.player_messages = [{"role": "system", "content": system_prompt_player}]
+            # player_history: list[Conversation] = st.session_state.player_history
+            # player_messages: list[dict] = st.session_state.player_messages
+            
+            # st.session_state.tool_history = []
+            # st.session_state.messages = [{"role": "system", "content": system_prompt}]
+            # history: list[Conversation] = st.session_state.tool_history
+            # messages: list[dict] = st.session_state.messages
+
         player_history: list[Conversation] = st.session_state.player_history
         player_messages: list[dict] = st.session_state.player_messages
 

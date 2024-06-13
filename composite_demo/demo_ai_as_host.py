@@ -19,7 +19,7 @@ tools = [
             "type": "function",
             "function": {
                 "name": "get_image_from_dalle",
-                "description": "在以下情况下，你可以调用这个工具来生成一张图片：1. 游戏的最开始，你需要一张图片来向用户展示汤面。2.当用户索要图片提示时，你需要生成一张能够提供足够提示的图片。3.谜底揭晓时，你需要提供一张能以足够准确度展示谜底的图片。",
+                "description": "在以下情况下，你可以调用这个工具来生成一张图片：1. 游戏的最开始，你需要一张图片来向用户展示汤面。2.当用户索要图片提示时，你需要生成一张能够提供足够提示的图片。首先，搜索你的记忆，找到玩家没猜到的\"核心设定\"的部分。随机抽取一个未猜到的\“核心设定\",随机给出其中的一个词，名词或者动词都可以。基于这个词生成一张图片 3.谜底揭晓时，你需要提供一张能以足够准确度展示谜底的图片。",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -169,6 +169,19 @@ def main(top_p: float, temperature: float, prompt_text: str):
         initialized = True
         
     else:
+        if 'tool_history' not in st.session_state:
+            initialized = False
+            main(
+                    prompt_text=prompt_text,
+                    top_p=top_p,
+                    temperature=temperature,
+                )
+            return
+            # st.session_state.tool_history = []
+            # st.session_state.messages = [{"role": "system", "content": system_prompt}]
+            # history: list[Conversation] = st.session_state.tool_history
+            # messages: list[dict] = st.session_state.messages
+
         history: list[Conversation] = st.session_state.tool_history
         messages: list[dict] = st.session_state.messages
 
