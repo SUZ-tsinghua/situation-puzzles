@@ -45,6 +45,8 @@ tools = [
 # 读入 system prompt
 with open('./ai_host_prompt.txt', 'r', encoding='utf-8') as file:
     system_prompt = file.read()
+with open('./ai_player_prompt.txt', 'r', encoding='utf-8') as file:
+    system_prompt_player = file.read()
 
 # Append a conversation into history, while show it in a new markdown block
 def append_conversation(
@@ -276,3 +278,27 @@ def main(top_p: float, temperature: float, prompt_text: str):
                                         Role.ASSISTANT,
                                         response_message.content,
                                     ), st.session_state.tool_history, markdown_placeholder)
+                
+def ai_generate(top_p: float, temperature: float, prompt_text: str):
+        player_messages: list[dict] = st.session_state.messages
+        player_messages[0] = {"role": "system", "content": system_prompt_player}
+
+        history: list[Conversation] = st.session_state.tool_history
+        messages: list[dict] = st.session_state.messages
+
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=player_messages,
+            temperature=temperature,
+            top_p=top_p
+        )
+
+        response_message = response.choices[0].message
+        messages.append(response_message)
+        player_messages.append(response_message)
+        print(response_message)
+
+        if response_message.content:
+            response_message = response_message.content.strip()
+            return response_message
+            

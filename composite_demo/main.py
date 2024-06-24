@@ -37,16 +37,26 @@ match tab:
             '来玩一把海龟汤吧!',
             key='chat_input',
         )
-
-        demo_ai_as_host.main(
-                    prompt_text=prompt_text,
+        with st.sidebar:
+            cols = st.columns(1)
+            generate_bttn = cols[0].button("AI生成一轮", use_container_width=True)
+        if generate_bttn:
+            prompt_text = demo_ai_as_host.ai_generate(
+                    prompt_text="1",
                     top_p=top_p,
                     temperature=temperature,
                 )
+        
+        demo_ai_as_host.main(
+                prompt_text=prompt_text,
+                top_p=top_p,
+                temperature=temperature,
+            )
+            
     case Mode.AI_VS_AI:
         with st.sidebar:
             cols = st.columns(1)
-            generate_bttn = cols[0].button("生成一轮（仅限AI vs AI）", use_container_width=True)
+            generate_bttn = cols[0].button("AI生成一轮", use_container_width=True)
         if generate_bttn:
             demo_ai_vs_ai.main(
                     prompt_text="1",
