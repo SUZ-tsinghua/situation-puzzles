@@ -8,6 +8,8 @@ from streamlit.delta_generator import DeltaGenerator
 from openai import OpenAI
 from tool_registry import get_image_from_dalle
 from conversation import Conversation, Role
+import base64
+from io import BytesIO
 
 # 创建 OpenAI client
 client = OpenAI(api_key='sk-proj-VUixgiopd34tsCI6w0UfT3BlbkFJZA2JN6Fn9ehr5wpw3bTE')
@@ -56,6 +58,14 @@ def append_conversation(
 ) -> None:
     history.append(conversation)
     conversation.show(placeholder)
+
+def generate_audio(text):
+    response = client.audio.speech.create(
+        model="tts-1",
+        voice="alloy",
+        input=text
+    )
+    return response.content
 
 def main(top_p: float, temperature: float, prompt_text: str):
 
@@ -168,6 +178,18 @@ def main(top_p: float, temperature: float, prompt_text: str):
         #     image_url = response.data[0].url
         #     st.image(image_url, use_column_width=True)
     
+
+            # 生成音频
+            audio_content = generate_audio(response_message.content)
+            audio_base64 = base64.b64encode(audio_content).decode('utf-8')
+            audio_html = f"""
+            <audio controls>
+                <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
+                Your browser does not support the audio element.
+            </audio>
+            """
+            st.markdown(audio_html, unsafe_allow_html=True)
+
         initialized = True
         
     else:
@@ -278,6 +300,16 @@ def main(top_p: float, temperature: float, prompt_text: str):
                                         Role.ASSISTANT,
                                         response_message.content,
                                     ), st.session_state.tool_history, markdown_placeholder)
+                # 生成音频
+                audio_content = generate_audio(response_message.content)
+                audio_base64 = base64.b64encode(audio_content).decode('utf-8')
+                audio_html = f"""
+                <audio controls>
+                    <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
+                    Your browser does not support the audio element.
+                </audio>
+                """
+                st.markdown(audio_html, unsafe_allow_html=True)
                 
 def ai_generate(top_p: float, temperature: float, prompt_text: str):
         player_messages: list[dict] = st.session_state.messages
